@@ -1,213 +1,151 @@
 import streamlit as st
-import PyPDF2
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import plotly.graph_objects as go
+import pdf_reader
+import text_cleaner
+import ats_score
 import time
 
-# ---------------------------------------------------
-# PAGE CONFIG
-# ---------------------------------------------------
+# Page Configuration
 st.set_page_config(
-    page_title="ATS Intelligence Pro",
-    page_icon="🎯",
-    layout="wide"
+    page_title="Smart ATS Pro",
+    page_icon="📄",
+    layout="wide",
 )
 
-# ---------------------------------------------------
-# CUSTOM CSS & ANIMATIONS
-# ---------------------------------------------------
+# Custom CSS for a professional, modern look
 st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-
-    /* Animated Gradient Background */
-    .stApp {
-        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
-        font-family: 'Outfit', sans-serif;
+    <style>
+    .main {
+        background-color: #f8f9fa;
     }
-
-    @keyframes gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-
-    /* Remove Streamlit default white boxes/borders around elements */
-    [data-testid="stVerticalBlock"] > div {
-        background-color: transparent !important;
-    }
-
-    /* Vertical Header Layout */
-    .header-container {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        margin-bottom: 15px;
-    }
-
-    /* Badge Styling with Deep Shadow */
-    .step-badge {
-        background: #1e293b;
-        color: white;
-        padding: 6px 18px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-        font-weight: 800;
-        letter-spacing: 1.5px;
-        box-shadow: 0 8px 15px rgba(0,0,0,0.3); /* Strong Shadow */
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .step-text {
-        color: #1e293b;
-        font-weight: 700;
-        font-size: 1.1rem;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    /* Glassmorphism Card */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border-radius: 25px;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        padding: 35px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* Deep shadow for depth */
-        margin-bottom: 25px;
-        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .glass-card:hover {
-        transform: translateY(-12px);
-        box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Input Box Styles - Removing default borders */
-    [data-testid="stFileUploader"], textarea {
-        background-color: rgba(255, 255, 255, 0.5) !important;
-        border: 1px solid rgba(0,0,0,0.05) !important;
-        border-radius: 15px !important;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
-    }
-
-    /* Button Styling */
     .stButton>button {
-        background: #1e293b;
-        color: white;
-        border-radius: 15px;
-        padding: 20px 40px;
-        font-weight: 700;
-        font-size: 1rem;
         width: 100%;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.25);
-        border: none;
-        transition: all 0.3s ease;
+        border-radius: 8px;
+        height: 3.5em;
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+        font-size: 1.1rem;
+        transition: 0.3s;
     }
-
     .stButton>button:hover {
-        background: #e73c7e;
-        transform: scale(1.03);
-        box-shadow: 0 20px 40px rgba(231, 60, 126, 0.4);
+        background-color: #0056b3;
+        border: none;
     }
+    .score-container {
+        padding: 30px;
+        border-radius: 15px;
+        background-color: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-align: center;
+        margin-top: 20px;
+        border-top: 5px solid #007bff;
+    }
+    .score-text {
+        font-size: 80px;
+        font-weight: 800;
+        color: #28a745;
+        margin: 0;
+    }
+    .header-text {
+        color: #1E3A8A;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    </style>
+    """, unsafe_allow_headers=True)
 
-    header, footer {visibility: hidden;}
+def main():
+    # Sidebar for extra information
+    with st.sidebar:
+        st.title("Settings & Tips")
+        st.info("This AI tool uses TF-IDF Vectorization and Cosine Similarity to compare your resume against a job description.")
+        st.markdown("---")
+        st.markdown("### 💡 Quick Tips:")
+        st.write("- Use keywords found in the job description.")
+        st.write("- Avoid complex tables or graphics in your PDF.")
+        st.write("- Ensure your contact info is clear.")
 
-</style>
-""", unsafe_allow_html=True)
+    # Header Section
+    st.markdown("<h1 class='header-text' style='text-align: center;'>🚀 AI-Powered ATS Resume Scorer</h1>", unsafe_allow_headers=True)
+    st.markdown("<p style='text-align: center; color: #6c757d; font-size: 1.2rem;'>Optimize your resume for the modern job market with instant feedback</p>", unsafe_allow_headers=True)
+    st.markdown("---")
 
-# ---------------------------------------------------
-# LOGIC
-# ---------------------------------------------------
-def extract_text_from_pdf(uploaded_file):
-    text = ""
-    pdf_reader = PyPDF2.PdfReader(uploaded_file)
-    for page in pdf_reader.pages:
-        extracted = page.extract_text()
-        if extracted: text += extracted
-    return text
+    # Layout: Two columns for input sections
+    col1, col2 = st.columns([1, 1], gap="large")
 
-# ---------------------------------------------------
-# MAIN UI
-# ---------------------------------------------------
+    with col1:
+        st.subheader("📂 Step 1: Upload Resume")
+        uploaded_file = st.file_uploader("Drop your PDF here", type=["pdf"], help="Supports standard PDF resumes.")
+        if uploaded_file:
+            st.success(f"✅ **{uploaded_file.name}** uploaded successfully!")
 
-# Main Title Section
-st.markdown("<h1 style='text-align: center; color: white; font-size: 4.5rem; font-weight: 800; text-shadow: 0 15px 30px rgba(0,0,0,0.3); margin-top: -30px;'>ATS SCANNER</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: white; margin-bottom: 50px; font-size: 1.3rem; font-weight: 400; opacity: 0.9;'>Precision Semantic Analysis for Modern Careers</p>", unsafe_allow_html=True)
+    with col2:
+        st.subheader("📝 Step 2: Job Description")
+        job_description = st.text_area("Paste the requirements", height=200, placeholder="Paste the job requirements, skills, and description here...")
 
-col_left, col_right = st.columns([1, 1], gap="large")
+    st.markdown("<br>", unsafe_allow_headers=True)
 
-with col_left:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('''
-        <div class="header-container">
-            <span class="step-badge">STEP 01</span>
-            <span class="step-text">📄 ATTACH RESUME</span>
-        </div>
-    ''', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"], label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Center column for the action button
+    _, btn_col, _ = st.columns([1, 1.5, 1])
+    with btn_col:
+        submit = st.button("🎯 CALCULATE MATCH SCORE")
 
-with col_right:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('''
-        <div class="header-container">
-            <span class="step-badge">STEP 02</span>
-            <span class="step-text">💼 JOB DESCRIPTION</span>
-        </div>
-    ''', unsafe_allow_html=True)
-    job_description = st.text_area("Paste JD", height=105, placeholder="Paste requirements here...", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
+    if submit:
+        if uploaded_file is not None and job_description.strip() != "":
+            # Animation: Status bar and loading messages
+            with st.status("🔍 Analyzing Document Alignment...", expanded=True) as status:
+                st.write("Extracting text from PDF...")
+                resume_text = pdf_reader.get_pdf_text(uploaded_file)
+                
+                if not resume_text.strip():
+                    st.error("Error: Could not extract text. The PDF might be a scanned image or empty.")
+                    status.update(label="Analysis Failed", state="error")
+                    return
 
-# Analysis Button
-_, btn_col, _ = st.columns([1, 1, 1])
-with btn_col:
-    analyze_btn = st.button("INITIATE AI SCAN")
+                st.write("Cleaning and Pre-processing contents...")
+                cleaned_resume = text_cleaner.clean_text(resume_text)
+                cleaned_jd = text_cleaner.clean_text(job_description)
+                time.sleep(0.6) # Small delay for visual effect
 
-if analyze_btn:
-    if uploaded_file and job_description:
-        with st.status("Analyzing...", expanded=False):
-            resume_text = extract_text_from_pdf(uploaded_file)
-            tfidf = TfidfVectorizer(stop_words='english')
-            vectors = tfidf.fit_transform([resume_text, job_description])
-            similarity = cosine_similarity(vectors[0:1], vectors[1:2])
-            score = round(similarity[0][0] * 100, 1)
-        
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        res_1, res_2 = st.columns([1, 1.5])
-        
-        with res_1:
-            st.markdown("<div style='text-align: center; margin-top: 30px;'><span class='step-badge'>MATCH RATE</span></div>", unsafe_allow_html=True)
-            st.markdown(f"<h1 style='text-align: center; font-size: 110px; color: #1e293b; margin: 0; font-weight: 800;'>{score}%</h1>", unsafe_allow_html=True)
-        
-        with res_2:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=score,
-                gauge={
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': "#1e293b"},
-                    'bgcolor': "white",
-                    'steps': [
-                        {'range': [0, 50], 'color': '#fca5a5'},
-                        {'range': [50, 80], 'color': '#fde68a'},
-                        {'range': [80, 100], 'color': '#86efac'}
-                    ],
-                }
-            ))
-            fig.update_layout(height=280, margin=dict(l=20, r=20, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, use_container_width=True)
+                st.write("Calculating Cosine Similarity using TF-IDF...")
+                score = ats_score.get_ats_score(cleaned_resume, cleaned_jd)
+                time.sleep(0.6)
+                
+                status.update(label="Analysis Complete!", state="complete", expanded=False)
 
-        if score >= 80:
-            st.success("🎯 **Excellent Match!**")
-        elif score >= 50:
-            st.warning("⚠️ **Solid Alignment.**")
+            # Results UI Card
+            st.markdown(f"""
+            <div class='score-container'>
+                <h3>Your ATS Match Score</h3>
+                <div class='score-text'>{score}%</div>
+            </div>
+            """, unsafe_allow_headers=True)
+            
+            # Progress bar for visual feedback
+            st.progress(score / 100)
+
+            # Dynamic Feedback based on score
+            if score >= 80:
+                st.balloons() # Animation for high score
+                st.success("🔥 **Outstanding!** Your resume is a fantastic match for this role. You are ready to apply!")
+            elif score >= 60:
+                st.info("✨ **Good Match.** You have the core skills. Try adding a few more specific keywords from the JD to improve your ranking.")
+            elif score >= 40:
+                st.warning("⚠️ **Moderate Match.** Your resume matches some key areas but needs more alignment with the specific skills mentioned.")
+            else:
+                st.error("📉 **Low Match.** We recommend tailoring your resume significantly to include more relevant keywords and technologies.")
+
+            # Details Expander
+            with st.expander("📊 View Detailed Keyword Preview"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown("**Processed Resume Content:**")
+                    st.caption(cleaned_resume[:800] + "...")
+                with c2:
+                    st.markdown("**Processed JD Content:**")
+                    st.caption(cleaned_jd[:800] + "...")
         else:
-            st.error("❌ **Low Match Score.**")
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.toast("Please provide both inputs.", icon="⚠️")
+            st.error("⚠️ Please provide both a Resume and a Job Description to begin the analysis.")
+
+if __name__ == '__main__':
+    main()
