@@ -9,8 +9,8 @@ import plotly.graph_objects as go
 # ---------------------------------------------------
 
 st.set_page_config(
-    page_title="ATS Resume Screening System",
-    page_icon="📄",
+    page_title="ATS Resume Analyzer",
+    page_icon="🚀",
     layout="wide"
 )
 
@@ -21,173 +21,220 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* Main Background */
-.stApp {
-    background: linear-gradient(to right, #f5f7fa, #c3cfe2);
-    font-family: Arial, sans-serif;
+/* Import Font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Poppins', sans-serif;
 }
 
-/* Main Title */
+/* Main Background */
+.stApp {
+    background: #0F172A;
+    color: white;
+}
+
+/* Remove Streamlit Header */
+header {
+    visibility: hidden;
+}
+
+/* Main Container */
+.main-container {
+    background: linear-gradient(135deg, #111827, #1E293B);
+    padding: 35px;
+    border-radius: 25px;
+    box-shadow: 0px 10px 40px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-top: 20px;
+}
+
+/* Title */
 .main-title {
-    font-size: 45px;
-    font-weight: bold;
-    color: #1E3A8A;
-    text-align: center;
+    font-size: 52px;
+    font-weight: 700;
+    color: white;
     margin-bottom: 10px;
 }
 
 /* Subtitle */
 .sub-title {
-    text-align: center;
-    color: #374151;
+    color: #94A3B8;
     font-size: 18px;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
-/* Card Design */
-.card {
-    background-color: white;
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: 0px 6px 20px rgba(0,0,0,0.15);
-    border: 1px solid #ddd;
-    margin-bottom: 20px;
-}
-
-/* File Uploader */
+/* Upload Box */
 [data-testid="stFileUploader"] {
-    border: 2px dashed #4F46E5;
-    border-radius: 15px;
-    padding: 15px;
-    background-color: #ffffff;
+    background: #1E293B;
+    border: 2px dashed #6366F1;
+    border-radius: 18px;
+    padding: 20px;
 }
 
 /* Text Area */
 textarea {
-    border-radius: 12px !important;
-    border: 2px solid #4F46E5 !important;
+    background-color: #1E293B !important;
+    color: white !important;
+    border-radius: 18px !important;
+    border: 2px solid #334155 !important;
+    font-size: 16px !important;
 }
 
-/* Buttons */
+/* Labels */
+label {
+    color: white !important;
+    font-weight: 500 !important;
+}
+
+/* Button */
 .stButton>button {
     width: 100%;
-    background: linear-gradient(90deg, #4F46E5, #9333EA);
-    color: white;
-    border-radius: 12px;
+    height: 55px;
     border: none;
-    padding: 12px;
+    border-radius: 15px;
+    background: linear-gradient(90deg, #7C3AED, #4F46E5);
+    color: white;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 600;
     transition: 0.3s;
+    margin-top: 15px;
 }
 
 .stButton>button:hover {
-    transform: scale(1.03);
-    background: linear-gradient(90deg, #9333EA, #4F46E5);
+    transform: translateY(-3px);
+    box-shadow: 0px 8px 25px rgba(124,58,237,0.4);
 }
 
-/* Score Box */
-.score-box {
-    background: linear-gradient(to right, #10B981, #059669);
-    color: white;
-    padding: 25px;
-    border-radius: 20px;
+/* Score Card */
+.score-card {
+    background: linear-gradient(135deg, #7C3AED, #4F46E5);
+    padding: 35px;
+    border-radius: 25px;
     text-align: center;
-    font-size: 30px;
+    color: white;
+    margin-top: 30px;
+    box-shadow: 0px 10px 35px rgba(79,70,229,0.4);
+}
+
+/* Score Text */
+.score-text {
+    font-size: 65px;
     font-weight: bold;
-    box-shadow: 0px 6px 15px rgba(0,0,0,0.2);
-    margin-top: 20px;
+}
+
+/* Small Text */
+.score-label {
+    font-size: 20px;
+    opacity: 0.9;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: #111827;
+    border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Success Box */
+.stSuccess {
+    border-radius: 15px;
+}
+
+/* Warning Box */
+.stWarning {
+    border-radius: 15px;
+}
+
+/* Error Box */
+.stError {
+    border-radius: 15px;
 }
 
 /* Footer */
 .footer {
     text-align: center;
-    color: gray;
+    color: #94A3B8;
     margin-top: 40px;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------
-# TITLE
-# ---------------------------------------------------
-
-st.markdown(
-    '<div class="main-title">📄 ATS Resume Screening System</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="sub-title">Upload Resume & Compare with Job Description</div>',
-    unsafe_allow_html=True
-)
-
-# ---------------------------------------------------
 # SIDEBAR
 # ---------------------------------------------------
 
-st.sidebar.title("📌 Navigation")
+st.sidebar.title("🚀 ATS Resume Analyzer")
 
 menu = st.sidebar.radio(
-    "Go To",
+    "Navigation",
     ["ATS Checker", "About Project"]
 )
 
 # ---------------------------------------------------
-# PDF TEXT EXTRACTION FUNCTION
+# PDF EXTRACT FUNCTION
 # ---------------------------------------------------
 
-def extract_text_from_pdf(pdf_file):
+def extract_text_from_pdf(uploaded_file):
     text = ""
 
-    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    pdf_reader = PyPDF2.PdfReader(uploaded_file)
 
     for page in pdf_reader.pages:
-        extracted = page.extract_text()
+        extracted_text = page.extract_text()
 
-        if extracted:
-            text += extracted
+        if extracted_text:
+            text += extracted_text
 
     return text
 
 # ---------------------------------------------------
-# ATS CHECKER
+# ATS CHECKER PAGE
 # ---------------------------------------------------
 
 if menu == "ATS Checker":
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
+    st.markdown(
+        '<div class="main-title">Smart ATS Resume Analyzer</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="sub-title">Analyze your resume against job descriptions using AI-powered ATS matching.</div>',
+        unsafe_allow_html=True
+    )
+
+    # Layout
     col1, col2 = st.columns(2)
 
     with col1:
         uploaded_file = st.file_uploader(
-            "📂 Upload Resume (PDF)",
+            "📄 Upload Resume",
             type=["pdf"]
         )
 
     with col2:
         job_description = st.text_area(
-            "📝 Enter Job Description",
+            "💼 Paste Job Description",
             height=250
         )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Button
+    calculate = st.button("⚡ Analyze Resume")
 
     # ---------------------------------------------------
-    # BUTTON
+    # SCORE CALCULATION
     # ---------------------------------------------------
 
-    if st.button("🚀 Calculate ATS Score"):
+    if calculate:
 
         if uploaded_file is not None and job_description != "":
 
-            # Extract Resume Text
             resume_text = extract_text_from_pdf(uploaded_file)
 
-            # TF-IDF Vectorization
             tfidf = TfidfVectorizer(stop_words='english')
 
             vectors = tfidf.fit_transform([
@@ -195,89 +242,98 @@ if menu == "ATS Checker":
                 job_description
             ])
 
-            # Cosine Similarity
-            similarity = cosine_similarity(vectors[0:1], vectors[1:2])
+            similarity = cosine_similarity(
+                vectors[0:1],
+                vectors[1:2]
+            )
 
             score = round(similarity[0][0] * 100, 2)
 
-            # ---------------------------------------------------
-            # SCORE DISPLAY
-            # ---------------------------------------------------
-
+            # Score Card
             st.markdown(f"""
-            <div class="score-box">
-                ATS Match Score <br><br>
-                {score}%
+            <div class="score-card">
+                <div class="score-label">
+                    ATS MATCH SCORE
+                </div>
+
+                <div class="score-text">
+                    {score}%
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # ---------------------------------------------------
-            # PROGRESS BAR
-            # ---------------------------------------------------
+            st.write("")
 
+            # Progress
             st.progress(int(score))
 
-            # ---------------------------------------------------
-            # GAUGE CHART
-            # ---------------------------------------------------
-
+            # Gauge Chart
             fig = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=score,
-                title={'text': "ATS Score"},
+                title={'text': "Resume Score"},
                 gauge={
-                    'axis': {'range': [0, 100]}
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': "#7C3AED"},
+                    'bgcolor': "white",
                 }
             ))
 
+            fig.update_layout(
+                paper_bgcolor="#111827",
+                font={'color': "white"}
+            )
+
             st.plotly_chart(fig, use_container_width=True)
 
-            # ---------------------------------------------------
-            # FEEDBACK
-            # ---------------------------------------------------
-
+            # Result Message
             if score >= 80:
-                st.success("✅ Excellent Resume Match!")
+                st.success("✅ Excellent Resume Match! Your resume is highly aligned with the job description.")
+
             elif score >= 60:
-                st.warning("⚠️ Good Match, but can be improved.")
+                st.warning("⚠️ Good Match! Add more relevant keywords and skills.")
+
             else:
-                st.error("❌ Resume Match is Low. Improve your resume.")
+                st.error("❌ Low Match Score! Improve your resume according to the job description.")
 
         else:
             st.warning("⚠️ Please upload resume and enter job description.")
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # ---------------------------------------------------
-# ABOUT SECTION
+# ABOUT PAGE
 # ---------------------------------------------------
 
 elif menu == "About Project":
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-    st.header("📘 About This Project")
-
-    st.write("""
-    This ATS Resume Screening System compares:
-
-    - Resume Content
-    - Job Description
-
-    using NLP techniques like:
-
-    ✅ TF-IDF Vectorization  
-    ✅ Cosine Similarity  
-
-    and calculates the ATS Match Score.
-    """)
-
-    st.write("### 🚀 Technologies Used")
+    st.markdown(
+        '<div class="main-title">About This Project</div>',
+        unsafe_allow_html=True
+    )
 
     st.write("""
+    ### 🚀 Smart ATS Resume Analyzer
+
+    This application compares your resume with the job description using NLP techniques.
+
+    ### 🔥 Features
+
+    - Resume PDF Upload
+    - ATS Match Score
+    - NLP-based Matching
+    - Interactive Dashboard
+    - Modern UI Design
+
+    ### 🧠 Technologies Used
+
     - Python
     - Streamlit
     - Scikit-learn
-    - PyPDF2
     - Plotly
+    - PyPDF2
     """)
 
     st.markdown('</div>', unsafe_allow_html=True)
@@ -288,6 +344,6 @@ elif menu == "About Project":
 
 st.markdown("""
 <div class="footer">
-    Made with ❤️ using Streamlit
+Made with ❤️ using Streamlit
 </div>
 """, unsafe_allow_html=True)
